@@ -1,0 +1,287 @@
+local player = game.Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+
+if playerGui:FindFirstChild("UtilityGui") then
+	playerGui.UtilityGui:Destroy()
+end
+
+_G.FlySpeed = _G.FlySpeed or 75
+_G.WalkSpeed = _G.WalkSpeed or 16
+_G.JumpPower = _G.JumpPower or 50
+
+local gui = Instance.new("ScreenGui")
+gui.Name = "UtilityGui"
+gui.ResetOnSpawn = false
+gui.Parent = playerGui
+
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 260, 0, 250)
+frame.Position = UDim2.new(0.5, -130, 0.15, 0)
+frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+frame.BackgroundTransparency = 0.25
+frame.BorderSizePixel = 0
+frame.Active = true
+frame.Draggable = true
+frame.Parent = gui
+
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, -60, 0, 30)
+title.Position = UDim2.new(0, 10, 0, 5)
+title.BackgroundTransparency = 1
+title.Text = "Character Utility"
+title.TextColor3 = Color3.new(1, 1, 1)
+title.Font = Enum.Font.GothamBold
+title.TextSize = 18
+title.TextXAlignment = Enum.TextXAlignment.Left
+title.Parent = frame
+
+local closeBtn = Instance.new("TextButton")
+closeBtn.Size = UDim2.new(0, 25, 0, 25)
+closeBtn.Position = UDim2.new(1, -30, 0, 5)
+closeBtn.Text = "X"
+closeBtn.Font = Enum.Font.GothamBold
+closeBtn.TextColor3 = Color3.new(1, 1, 1)
+closeBtn.BackgroundColor3 = Color3.fromRGB(60, 0, 0)
+closeBtn.Parent = frame
+closeBtn.MouseButton1Click:Connect(function()
+	gui:Destroy()
+end)
+
+local collapseBtn = Instance.new("TextButton")
+collapseBtn.Size = UDim2.new(0, 25, 0, 25)
+collapseBtn.Position = UDim2.new(1, -60, 0, 5)
+collapseBtn.Text = "-"
+collapseBtn.Font = Enum.Font.GothamBold
+collapseBtn.TextColor3 = Color3.new(1, 1, 1)
+collapseBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+collapseBtn.Parent = frame
+
+local inputsContainer = Instance.new("Frame")
+inputsContainer.Size = UDim2.new(1, -20, 0, 180)
+inputsContainer.Position = UDim2.new(0, 10, 0, 40)
+inputsContainer.BackgroundTransparency = 1
+inputsContainer.Parent = frame
+
+local function createRow(labelText, placeholder, yOffset, defaultValue, onEnter)
+	local label = Instance.new("TextLabel")
+	label.Size = UDim2.new(0.4, -10, 0, 25)
+	label.Position = UDim2.new(0, 0, 0, yOffset)
+	label.BackgroundTransparency = 1
+	label.Text = labelText
+	label.TextColor3 = Color3.new(1, 1, 1)
+	label.Font = Enum.Font.Gotham
+	label.TextSize = 14
+	label.Parent = inputsContainer
+
+	local input = Instance.new("TextBox")
+	input.Size = UDim2.new(0.55, 0, 0, 25)
+	input.Position = UDim2.new(0.45, 0, 0, yOffset)
+	input.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+	input.TextColor3 = Color3.new(1, 1, 1)
+	input.TextSize = 14
+	input.PlaceholderText = placeholder
+	input.Font = Enum.Font.Gotham
+	input.ClearTextOnFocus = false
+	input.Text = tostring(defaultValue)
+	input.Parent = inputsContainer
+
+	input.FocusLost:Connect(function(enterPressed)
+		if enterPressed then
+			local value = tonumber(input.Text)
+			if value and value >= 0 then
+				onEnter(value)
+				input.Text = tostring(value)
+			else
+				input.Text = "Invalid"
+			end
+		end
+	end)
+end
+
+createRow("Fly Speed:", "75", 0, _G.FlySpeed, function(v) _G.FlySpeed = v end)
+createRow("Walk Speed:", "16", 30, _G.WalkSpeed, function(v)
+	_G.WalkSpeed = v
+	local hum = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+	if hum then hum.WalkSpeed = v end
+end)
+createRow("Jump Power:", "50", 60, _G.JumpPower, function(v)
+	_G.JumpPower = v
+	local hum = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+	if hum then
+		hum.UseJumpPower = true
+		hum.JumpPower = v
+	end
+end)
+
+-- ✅ Fly Toggle GUI Button
+local flyToggle = Instance.new("TextButton")
+flyToggle.Size = UDim2.new(1, 0, 0, 25)
+flyToggle.Position = UDim2.new(0, 0, 0, 90)
+flyToggle.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+flyToggle.TextColor3 = Color3.new(1, 1, 1)
+flyToggle.Font = Enum.Font.GothamBold
+flyToggle.TextSize = 14
+flyToggle.Text = "Fly Key: Enabled"
+flyToggle.Parent = inputsContainer
+
+local flyToggleEnabled = true
+flyToggle.MouseButton1Click:Connect(function()
+	flyToggleEnabled = not flyToggleEnabled
+	flyToggle.Text = "Fly Key: " .. (flyToggleEnabled and "Enabled" or "Disabled")
+	flyToggle.BackgroundColor3 = flyToggleEnabled and Color3.fromRGB(40, 40, 40) or Color3.fromRGB(60, 20, 20)
+end)
+
+-- ✅ Anchor Toggle
+local anchorToggle = Instance.new("TextButton")
+anchorToggle.Size = UDim2.new(1, 0, 0, 25)
+anchorToggle.Position = UDim2.new(0, 0, 0, 120)
+anchorToggle.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+anchorToggle.TextColor3 = Color3.new(1, 1, 1)
+anchorToggle.Font = Enum.Font.GothamBold
+anchorToggle.TextSize = 14
+anchorToggle.Text = "Anchor: Off"
+anchorToggle.Parent = inputsContainer
+
+local anchored = false
+anchorToggle.MouseButton1Click:Connect(function()
+	local char = player.Character or player.CharacterAdded:Wait()
+	local root = char:FindFirstChild("HumanoidRootPart")
+	if root then
+		anchored = not anchored
+		root.Anchored = anchored
+		anchorToggle.Text = "Anchor: " .. (anchored and "On" or "Off")
+		anchorToggle.BackgroundColor3 = anchored and Color3.fromRGB(60, 60, 20) or Color3.fromRGB(40, 40, 40)
+	end
+end)
+
+-- ✅ Soft Reset
+local button = Instance.new("TextButton")
+button.Size = UDim2.new(1, 0, 0, 25)
+button.Position = UDim2.new(0, 0, 1, -30)
+button.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+button.TextColor3 = Color3.new(1, 1, 1)
+button.Font = Enum.Font.GothamBold
+button.TextSize = 14
+button.Text = "Soft Reset"
+button.Parent = frame
+
+button.MouseButton1Click:Connect(function()
+	local char = player.Character
+	if char and char:FindFirstChild("HumanoidRootPart") and char:FindFirstChildOfClass("Humanoid") then
+		local pos = char.HumanoidRootPart.Position
+		char:FindFirstChildOfClass("Humanoid").Health = 0
+		player.CharacterAdded:Wait():WaitForChild("HumanoidRootPart").CFrame = CFrame.new(pos + Vector3.new(0, 3, 0))
+
+		local newChar = player.Character or player.CharacterAdded:Wait()
+		local hum = newChar:WaitForChild("Humanoid")
+		hum.WalkSpeed = _G.WalkSpeed
+		hum.UseJumpPower = true
+		hum.JumpPower = _G.JumpPower
+	end
+end)
+
+local collapsed = false
+collapseBtn.MouseButton1Click:Connect(function()
+	collapsed = not collapsed
+	inputsContainer.Visible = not collapsed
+	button.Visible = not collapsed
+	frame.Size = collapsed and UDim2.new(0, 260, 0, 40) or UDim2.new(0, 260, 0, 250)
+	collapseBtn.Text = collapsed and "+" or "-"
+end)
+
+-- === FLY SCRIPT ===
+local flying = false
+local bodyVelocity, connection, noclipConnection
+local humanoid, hrp, character
+local isUpPressed = false
+local isDownPressed = false
+
+local function getCharacter()
+	character = player.Character or player.CharacterAdded:Wait()
+	hrp = character:WaitForChild("HumanoidRootPart")
+	humanoid = character:WaitForChild("Humanoid")
+end
+
+local function noclipOn()
+	noclipConnection = RunService.Stepped:Connect(function()
+		if character then
+			for _, part in pairs(character:GetDescendants()) do
+				if part:IsA("BasePart") then
+					part.CanCollide = false
+				end
+			end
+		end
+	end)
+end
+
+local function noclipOff()
+	if noclipConnection then
+		noclipConnection:Disconnect()
+		noclipConnection = nil
+	end
+end
+
+local function startFlying()
+	getCharacter()
+	humanoid.PlatformStand = true
+	noclipOn()
+
+	bodyVelocity = Instance.new("BodyVelocity")
+	bodyVelocity.MaxForce = Vector3.new(1e5, 1e5, 1e5)
+	bodyVelocity.P = 1250
+	bodyVelocity.Velocity = Vector3.zero
+	bodyVelocity.Parent = hrp
+
+	connection = RunService.RenderStepped:Connect(function()
+		local cam = workspace.CurrentCamera
+		local mouse = player:GetMouse()
+		local move = Vector3.zero
+
+		if UserInputService:IsKeyDown(Enum.KeyCode.W) then move += cam.CFrame.LookVector end
+		if UserInputService:IsKeyDown(Enum.KeyCode.S) then move -= cam.CFrame.LookVector end
+		if UserInputService:IsKeyDown(Enum.KeyCode.A) then move -= cam.CFrame.RightVector end
+		if UserInputService:IsKeyDown(Enum.KeyCode.D) then move += cam.CFrame.RightVector end
+		if UserInputService:IsKeyDown(Enum.KeyCode.Space) or isUpPressed then move += Vector3.new(0, 1, 0) end
+		if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) or isDownPressed then move -= Vector3.new(0, 1, 0) end
+
+		bodyVelocity.Velocity = move.Magnitude > 0 and move.Unit * (_G.FlySpeed or 75) or Vector3.zero
+
+		if mouse and mouse.Hit then
+			local lookPos = mouse.Hit.Position
+			hrp.CFrame = CFrame.new(hrp.Position, lookPos)
+		end
+	end)
+end
+
+local function stopFlying()
+	if bodyVelocity then bodyVelocity:Destroy() bodyVelocity = nil end
+	if connection then connection:Disconnect() connection = nil end
+	if humanoid then humanoid.PlatformStand = false end
+	noclipOff()
+end
+
+UserInputService.InputBegan:Connect(function(input, gp)
+	if gp then return end
+	if input.KeyCode == Enum.KeyCode.F and flyToggleEnabled then
+		flying = not flying
+		if flying then
+			startFlying()
+		else
+			stopFlying()
+		end
+	elseif input.KeyCode == Enum.KeyCode.Q then
+		isUpPressed = true
+	elseif input.KeyCode == Enum.KeyCode.E then
+		isDownPressed = true
+	end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+	if input.KeyCode == Enum.KeyCode.Q then
+		isUpPressed = false
+	elseif input.KeyCode == Enum.KeyCode.E then
+		isDownPressed = false
+	end
+end)
